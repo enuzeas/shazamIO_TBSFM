@@ -1,6 +1,10 @@
 import asyncio
 import os
+from dotenv import load_dotenv
 import aiohttp
+
+load_dotenv()
+
 from google.oauth2 import service_account
 import google.auth.transport.requests
 from shazamio import Shazam
@@ -12,8 +16,9 @@ SEGMENT_DURATION = 10  # 분석할 오디오 길이 (초)
 TEMP_AUDIO_FILE = "temp_segment.mp3"
 
 # Firebase 설정
-CRED_PATH = "serviceAccountKey.json"
-DATABASE_URL = "https://tbsapp-function-default-rtdb.asia-southeast1.firebasedatabase.app" 
+CRED_PATH = os.getenv("SHAZAMIO_CRED_PATH", "serviceAccountKey.json")
+DATABASE_URL = os.getenv("SHAZAMIO_DATABASE_URL", "https://tbsapp-function-default-rtdb.asia-southeast1.firebasedatabase.app")
+ 
 
 # Global credentials object
 firebase_creds = None
@@ -161,7 +166,8 @@ async def main():
     parser.add_argument("url", nargs="?", help="HLS Stream URL")
     args = parser.parse_args()
 
-    hls_url = args.url or "https://cdnfm.tbs.seoul.kr/tbs/_definst_/8434_tbs.stream_audio-only/playlist.m3u8"
+    hls_url = args.url or os.getenv("SHAZAMIO_HLS_URL") or "https://cdnfm.tbs.seoul.kr/tbs/_definst_/8434_tbs.stream_audio-only/playlist.m3u8"
+
 
     if hls_url == "YOUR_HLS_STREAM_URL_HERE":
         print("경고: URL을 설정해주세요.")
@@ -194,23 +200,23 @@ async def main():
                     # 인식 중 에러 발생 (예: URL invalid 등)
                     error_msg = str(e)
                     if "URL is invalid" in error_msg:
-                        print(f"\n⚠️ Shazam API Issue (Rate Limit? Retrying in 5s...): {error_msg}")
+                        print(f"\n⚠️ Shazam API Issue (Rate Limit? Retrying in 30s...): {error_msg}")
                         # 세션 문제일 수 있으므로 인스턴스 재생성 시도
-                        await asyncio.sleep(5) # 대기 시간 증가
+                        await asyncio.sleep(30) # 대기 시간 증가
                         shazam = Shazam()
                     else:
                         print(f"\nError during recognition: {e}")
             else:
                 # 스트림이 오프라인이거나 캡처 실패 시
-                print(f"\n⚠️ Stream might be offline. Retrying in 10 seconds...")
-                await asyncio.sleep(10)
+                print(f"\n⚠️ Stream might be offline. Retrying in 30 seconds...")
+                await asyncio.sleep(30)
                 
         except Exception as e:
             print(f"\nCritical Error: {e}")
-            await asyncio.sleep(10)
+            await asyncio.sleep(30)
             
         # 반복 대기 (너무 빠른 루프 방지 -> API 보호)
-        await asyncio.sleep(10)
+        await asyncio.sleep(30)
 
 if __name__ == "__main__":
     try:

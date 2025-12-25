@@ -3,3 +3,4 @@ aiofiles
 
 firebase-admin
 urllib3<2
+python-dotenv
