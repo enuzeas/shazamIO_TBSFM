@@ -1,0 +1,5 @@
+shazamio
+aiofiles
+
+firebase-admin
+urllib3<2

@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+serviceAccountKey.json
+temp_segment.mp3
+diagnose.py
+verify_firebase.py
+.DS_Store
