@@ -129,8 +129,6 @@ async def capture_audio_segment(url, duration, output_file):
     """
     ffmpeg를 사용하여 HLS 스트림에서 오디오 세그먼트를 캡처합니다.
     """
-    # print(f"Adding {duration}s audio capture from stream...") # Too noisy for concurrent streams
-    
     # ffmpeg 명령어 구성
     cmd = [
         "ffmpeg",
@@ -159,18 +157,14 @@ async def capture_audio_segment(url, duration, output_file):
 
 async def on_music_detected(track_info, channel_id):
     """
-    음악이 감지되었을 때 실행되는 함수입니다.
-    이곳에 원하는 로직(알림 전송, 로그 기록 등)을 추가하세요.
+    Music detected handler.
+    No global keyword needed since we are mutating the global dictionary, not reassigning it.
     """
     title = track_info.get('title')
     subtitle = track_info.get('subtitle')
     print(f"\n🎉 [{channel_id.upper()}] Music Found: {title} - {subtitle}")
     
-    # 전체 메타데이터 출력 (개발용)
-    # print(json.dumps(track_info, indent=2, ensure_ascii=False))
-    
     # Firebase 저장 (REST API)
-    global LAST_DETECTED_KEY
     current_key = track_info.get('key')
     last_key = LAST_DETECTED_KEY.get(channel_id)
     
@@ -182,6 +176,7 @@ async def on_music_detected(track_info, channel_id):
         await save_to_firebase_rest(track_info, channel_id)
         
         if current_key:
+            # Mutate dictionary directly
             LAST_DETECTED_KEY[channel_id] = current_key
     else:
         print(f"   [{channel_id}] -> 🚫 Firebase not ready")
@@ -202,13 +197,12 @@ async def monitor_stream(url, channel_id, lock, start_delay=0):
     LAST_DETECTED_KEY[channel_id] = None
     LAST_SENT_STATUS[channel_id] = None
     
-    # Shazam 인스턴스 초기화 (각 스트림마다 별도 인스턴스 권장)
+    # Shazam 인스턴스 초기화
     shazam = Shazam()
 
     while True:
         try:
             # 1. 오디오 캡처
-            # print(f"[{channel_id}] Capturing audio...")
             success = await capture_audio_segment(url, SEGMENT_DURATION, temp_file)
             
             if success and os.path.exists(temp_file):
@@ -225,8 +219,6 @@ async def monitor_stream(url, channel_id, lock, start_delay=0):
                         LAST_SENT_STATUS[channel_id] = 'music'
                     else:
                         # 음악 아님 (Speech, Noise)
-                        # 줄바꿈 없이 출력하려면 print 처리가 복잡하므로 개별 로그로 변경
-                        # print(f"\r[{channel_id}] Speech/Noise...", end="", flush=True) 
                         
                         # 음악이 안 나오면 Now Playing 삭제
                         if LAST_SENT_STATUS.get(channel_id) != 'empty':
@@ -271,16 +263,16 @@ async def main():
     fm_url = args.url or os.getenv("SHAZAMIO_HLS_URL") or "https://cdnfm.tbs.seoul.kr/tbs/_definst_/8434_tbs.stream_audio-only/playlist.m3u8"
     efm_url = "https://cdnefm.tbs.seoul.kr/tbs/_definst_/tbs_efm_app_360.smil/playlist.m3u8"
 
-    print("🚀 Starting ShazamIO Multi-Channel Detector... (FM & eFM)")
+    print("🚀 Starting ShazamIO Multi-Channel Detector... (FM & eFM) v2.0")
     print("Option A: Separated DB paths (tbs_radio/fm/..., tbs_radio/efm/...)")
     
     # 동시성 제어를 위한 Lock 생성
     api_lock = asyncio.Lock()
 
-    # 두 개의 모니터링 태스크 실행 (시작 시간 차이를 둠)
+    # 두 개의 모니터링 태스크 실행
     await asyncio.gather(
         monitor_stream(fm_url, "fm", api_lock, start_delay=0),
-        monitor_stream(efm_url, "efm", api_lock, start_delay=12) # 12초 딜레이
+        monitor_stream(efm_url, "efm", api_lock, start_delay=12) 
     )
 
 if __name__ == "__main__":
