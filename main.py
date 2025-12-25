@@ -188,6 +188,7 @@ async def on_music_detected(track_info):
 
 
 async def main():
+    global LAST_DETECTED_KEY, LAST_SENT_STATUS
     parser = argparse.ArgumentParser(description="ShazamIO HLS Stream Detector")
     parser.add_argument("url", nargs="?", help="HLS Stream URL")
     args = parser.parse_args()
@@ -218,14 +219,12 @@ async def main():
                     if track:
                         # 음악 감지 성공! -> 액션 실행
                         await on_music_detected(track)
-                        global LAST_SENT_STATUS
                         LAST_SENT_STATUS = 'music'
                     else:
                         # 음악 아님 (Speech, Noise)
                         print(f"\r[Listening] Speech/Noise detected at {time.strftime('%H:%M:%S')}...", end="", flush=True)
                         
                         # 음악이 안 나오면 Now Playing 삭제 (빈 json)
-                        global LAST_DETECTED_KEY, LAST_SENT_STATUS
                         
                         # 상태가 empty가 아니면 (즉, 이전에 음악이었거나, 막 시작해서 모르는 경우)
                         if LAST_SENT_STATUS != 'empty':
