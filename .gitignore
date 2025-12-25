@@ -7,7 +7,7 @@ __pycache__/
 env/
 venv/
 serviceAccountKey.json
-temp_segment.mp3
+temp_segment*.mp3
 diagnose.py
 verify_firebase.py
 .DS_Store
