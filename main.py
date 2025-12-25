@@ -212,7 +212,7 @@ async def main():
             
             if success and os.path.exists(TEMP_AUDIO_FILE):
                 try:
-                    out = await shazam.recognize_song(TEMP_AUDIO_FILE)
+                    out = await shazam.recognize(TEMP_AUDIO_FILE)
                     track = out.get('track')
                     
                     if track:
