@@ -23,6 +23,7 @@ DATABASE_URL = os.getenv("SHAZAMIO_DATABASE_URL", "https://tbsapp-function-defau
 # Global credentials object
 firebase_creds = None
 LAST_DETECTED_KEY = None
+LAST_SENT_STATUS = None
 
 def init_firebase_auth():
     """Load Firebase credentials for REST API"""
@@ -97,6 +98,31 @@ async def save_to_firebase_rest(data):
                     
         except Exception as e:
             print(f"   -> ❌ REST API Request Error: {e}")
+
+async def clear_now_playing_rest():
+    """Clear the now_playing node in Firebase dict"""
+    if not FIREBASE_READY or not firebase_creds:
+        return
+
+    token = get_access_token()
+    if not token:
+        return
+
+    # Delete or set to null
+    base_url = DATABASE_URL.rstrip('/')
+    now_playing_url = f"{base_url}/tbs_radio/now_playing.json?access_token={token}"
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            # Send empty JSON {} to clear
+            async with session.put(now_playing_url, json={}) as resp:
+                if resp.status != 200:
+                    print(f"   -> ❌ Clear Now Playing Failed: {resp.status}")
+                # else:
+                #    print("   -> 🗑️ Now playing cleared.")
+        except Exception as e:
+            print(f"   -> ❌ Clear Request Error: {e}")
+
 
 async def capture_audio_segment(url, duration, output_file):
     """
@@ -192,9 +218,22 @@ async def main():
                     if track:
                         # 음악 감지 성공! -> 액션 실행
                         await on_music_detected(track)
+                        global LAST_SENT_STATUS
+                        LAST_SENT_STATUS = 'music'
                     else:
                         # 음악 아님 (Speech, Noise)
                         print(f"\r[Listening] Speech/Noise detected at {time.strftime('%H:%M:%S')}...", end="", flush=True)
+                        
+                        # 음악이 안 나오면 Now Playing 삭제 (빈 json)
+                        global LAST_DETECTED_KEY, LAST_SENT_STATUS
+                        
+                        # 상태가 empty가 아니면 (즉, 이전에 음악이었거나, 막 시작해서 모르는 경우)
+                        if LAST_SENT_STATUS != 'empty':
+                            if FIREBASE_READY:
+                                await clear_now_playing_rest()
+                                print(f"\n   -> ⏹️ Music stopped. Cleared 'now_playing'.")
+                            LAST_DETECTED_KEY = None
+                            LAST_SENT_STATUS = 'empty'
 
                 except Exception as e:
                     # 인식 중 에러 발생 (예: URL invalid 등)
