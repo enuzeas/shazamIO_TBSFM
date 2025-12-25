@@ -201,6 +201,7 @@ async def main():
         return
 
     print(f"📡 Monitoring Stream: {hls_url}")
+    print("🚀 Starting ShazamIO Detector v1.1... (Speech/Noise -> Empty JSON fix included)")
     print("Pre-buffering and analyzing... (Press Ctrl+C to stop)")
 
     # Shazam 인스턴스 초기화
