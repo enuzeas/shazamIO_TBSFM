@@ -135,8 +135,10 @@ async def capture_audio_segment(url, duration, output_file):
         "-i", url,
         "-t", str(duration),
         "-vn",
-        "-acodec", "libmp3lame",
-        "-f", "mp3",
+        "-acodec", "pcm_s16le", # WAV로 변경하여 CPU 사용량 감소 (인코딩 부하 제거)
+        "-ar", "44100",
+        "-ac", "2",
+        "-f", "wav",
         "-y",
         "-loglevel", "error",
         output_file
@@ -191,7 +193,7 @@ async def monitor_stream(url, channel_id, lock, start_delay=0):
 
     print(f"📡 Monitoring Stream [{channel_id.upper()}]: {url}")
     
-    temp_file = f"temp_segment_{channel_id}.mp3"
+    temp_file = f"temp_segment_{channel_id}.wav"
     
     # Initialize state for this channel
     LAST_DETECTED_KEY[channel_id] = None
