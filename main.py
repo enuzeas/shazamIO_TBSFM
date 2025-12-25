@@ -12,7 +12,7 @@ import time
 import argparse
 import json
 
-SEGMENT_DURATION = 10  # 분석할 오디오 길이 (초)
+SEGMENT_DURATION = 15  # 분석할 오디오 길이 (초) - 정확도 향상
 TEMP_AUDIO_FILE = "temp_segment.mp3"
 
 # Firebase 설정
@@ -214,7 +214,7 @@ async def main():
             
             if success and os.path.exists(TEMP_AUDIO_FILE):
                 try:
-                    out = await shazam.recognize(TEMP_AUDIO_FILE)
+                    out = await shazam.recognize_song(TEMP_AUDIO_FILE)
                     track = out.get('track')
                     
                     if track:
@@ -255,7 +255,7 @@ async def main():
             await asyncio.sleep(30)
             
         # 반복 대기 (너무 빠른 루프 방지 -> API 보호)
-        await asyncio.sleep(30)
+        await asyncio.sleep(15)
 
 if __name__ == "__main__":
     try:
